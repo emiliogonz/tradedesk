@@ -1,4 +1,7 @@
 package com.example.tradedesk.repository;
 
-public interface TradeRepository {
+import com.example.tradedesk.domain.Trade;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface TradeRepository extends JpaRepository<Trade, Long> {
 }

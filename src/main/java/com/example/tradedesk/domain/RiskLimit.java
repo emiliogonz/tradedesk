@@ -1,18 +1,20 @@
 package com.example.tradedesk.domain;
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
-import java.math.BigInteger;
-
 @Entity
 @Table(name = "risk_limits")
 @Getter
 @Setter
+@NoArgsConstructor
+@EqualsAndHashCode
 
 
-public class RiskLimits {
+public class RiskLimit {
 
     @Id
     @Column(name="instrument_id")

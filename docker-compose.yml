@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tradedesk-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tradedesk
+      POSTGRES_USER: tradedesk
+      POSTGRES_PASSWORD: tradedesk_dev_only
+    ports:
+      - "5432:5432"
+    volumes:
+      - tradedesk_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tradedesk"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  tradedesk_pgdata:
