@@ -2,6 +2,7 @@ package com.example.tradedesk.service;
 
 import com.example.tradedesk.domain.Instrument;
 import com.example.tradedesk.domain.Trade;
+import com.example.tradedesk.domain.TradeStatus;
 import com.example.tradedesk.domain.User;
 import com.example.tradedesk.dto.CreateTradeRequest;
 import com.example.tradedesk.dto.TradeResponse;
@@ -9,7 +10,12 @@ import com.example.tradedesk.exception.InstrumentNotFoundException;
 import com.example.tradedesk.repository.InstrumentRepository;
 import com.example.tradedesk.repository.TradeRepository;
 import com.example.tradedesk.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
 
 @Service
 public class TradeService {
@@ -39,20 +45,26 @@ public class TradeService {
         trade.setRate(request.rate());
         trade.setTradeDate(request.tradeDate());
         trade.setMaturityDate(request.maturityDate());
-        trade.setStatus("OPEN");
+        trade.setStatus(TradeStatus.OPEN);
 
         Trade saved = tradeRepository.save(trade);
+        return toResponse(saved);
 
+    }
+    @Transactional(readOnly = true)
+    public Page<TradeResponse> searchTrades(Long instrumentId, LocalDate from, LocalDate to, Pageable pageable)        {
+        return tradeRepository.search(instrumentId, from, to, pageable).map(this::toResponse);
+    }
+    private TradeResponse toResponse(Trade trade) {
         return new TradeResponse(
-                saved.getId(),
-                saved.getInstrument().getTicker(),
-                saved.getSide(),
-                saved.getNotional(),
-                saved.getRate(),
-                saved.getTradeDate(),
-                saved.getMaturityDate(),
-                saved.getStatus()
+                trade.getId(),
+                trade.getInstrument().getTicker(),
+                trade.getSide(),
+                trade.getNotional(),
+                trade.getRate(),
+                trade.getTradeDate(),
+                trade.getMaturityDate(),
+                trade.getStatus()
         );
-
     }
 }

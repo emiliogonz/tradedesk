@@ -29,8 +29,9 @@ public class Trade {
     @JoinColumn(name = "instrument_id", nullable = false)
     private Instrument instrument;
 
+    @Enumerated(EnumType.STRING)
     @Column(name="side", nullable = false)
-    private String side;
+    private TradeSide side;
 
     @Column(name="notional", nullable = false)
     private BigDecimal notional;
@@ -44,6 +45,7 @@ public class Trade {
     @Column(name="maturity_date")
     private LocalDate maturityDate;
 
+    @Enumerated(EnumType.STRING)
     @Column(name="status", nullable = false)
-    private String status;
+    private TradeStatus status;
 }
