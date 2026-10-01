@@ -30,3 +30,7 @@ server:
 logging:
   level:
     org.hibernate.SQL: debug
+
+jwt:
+  secret: ${JWT_SECRET:D4KtKA+vEF+wHg4fanDXc9VttxrZR1UBwNgOMDU/qOE=}
+  expiration-ms: 900000

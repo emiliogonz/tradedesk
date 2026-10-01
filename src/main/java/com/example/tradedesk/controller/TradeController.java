@@ -9,6 +9,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -23,8 +24,11 @@ public class TradeController {
     }
 
     @PostMapping
-    public ResponseEntity<TradeResponse> createTrade(@Valid @RequestBody CreateTradeRequest request){
-        TradeResponse response = tradeService.createTrade(request);
+    public ResponseEntity<TradeResponse> create(
+            @Valid @RequestBody CreateTradeRequest request,
+            Authentication authentication
+    ) {
+        TradeResponse response = tradeService.createTrade(request, authentication.getName());
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
     @GetMapping

@@ -30,16 +30,16 @@ public class TradeService {
         this.userRepository = userRepository;
     }
 
-    public TradeResponse createTrade(CreateTradeRequest request) {
+    public TradeResponse createTrade(CreateTradeRequest request, String userEmail) {
         Instrument instrument = instrumentRepository.findById(request.instrumentId())
                 .orElseThrow(() -> new InstrumentNotFoundException(request.instrumentId()));
 
-        User testUser = userRepository.findById(1L)
-                .orElseThrow(() -> new RuntimeException("Test user not found — insert one first"));
+        User user = userRepository.findByEmail(userEmail)
+                .orElseThrow(() -> new RuntimeException("Authenticated user not found: " + userEmail));
 
         Trade trade = new Trade();
         trade.setInstrument(instrument);
-        trade.setUser(testUser);
+        trade.setUser(user);
         trade.setSide(request.side());
         trade.setNotional(request.notional());
         trade.setRate(request.rate());
