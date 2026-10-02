@@ -11,6 +11,7 @@ import lombok.EqualsAndHashCode;
 @Getter
 @Setter
 @NoArgsConstructor
+@EqualsAndHashCode
 public class User {
 
     @Id
