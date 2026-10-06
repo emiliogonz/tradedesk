@@ -7,10 +7,12 @@ import com.example.tradedesk.domain.User;
 import com.example.tradedesk.dto.CreateInstrumentRequest;
 import com.example.tradedesk.dto.CreateTradeRequest;
 import com.example.tradedesk.dto.InstrumentResponse;
+import com.example.tradedesk.dto.PositionResponse;
 import com.example.tradedesk.repository.PositionRepository;
 import com.example.tradedesk.repository.TradeRepository;
 import com.example.tradedesk.repository.UserRepository;
 import com.example.tradedesk.service.InstrumentService;
+import com.example.tradedesk.service.PositionService;
 import com.example.tradedesk.service.TradeService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,7 +46,22 @@ class PositionIntegrationTest {
     @Autowired private PositionRepository positionRepository;
     @Autowired private TradeRepository tradeRepository;
     @Autowired private UserRepository userRepository;
+    @Autowired private PositionService positionService;
 
+    @Test
+    void listReturnsPositionWithTicker() {
+        InstrumentResponse instrument = createInstrument("LIST-TEST");
+        String email = createUser("list@tradedesk.dev");
+        tradeService.createTrade(trade(instrument.id(), TradeSide.BUY, "250000"), email);
+
+        PositionResponse position = positionService.list().stream()
+                .filter(p -> p.instrumentId().equals(instrument.id()))
+                .findFirst()
+                .orElseThrow();
+
+        assertThat(position.ticker()).isEqualTo("LIST-TEST");
+        assertThat(position.netExposure()).isEqualByComparingTo("250000");
+    }
     @Test
     void newInstrumentStartsWithZeroPosition() {
         InstrumentResponse instrument = createInstrument("ZERO-TEST");
