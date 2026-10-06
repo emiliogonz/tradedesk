@@ -2,6 +2,7 @@ package com.example.tradedesk;
 
 import com.example.tradedesk.domain.Instrument.InstrumentType;
 import com.example.tradedesk.domain.Position;
+import com.example.tradedesk.domain.RiskLimit;
 import com.example.tradedesk.domain.TradeSide;
 import com.example.tradedesk.domain.User;
 import com.example.tradedesk.dto.CreateInstrumentRequest;
@@ -9,6 +10,7 @@ import com.example.tradedesk.dto.CreateTradeRequest;
 import com.example.tradedesk.dto.InstrumentResponse;
 import com.example.tradedesk.dto.PositionResponse;
 import com.example.tradedesk.repository.PositionRepository;
+import com.example.tradedesk.repository.RiskLimitRepository;
 import com.example.tradedesk.repository.TradeRepository;
 import com.example.tradedesk.repository.UserRepository;
 import com.example.tradedesk.service.InstrumentService;
@@ -47,10 +49,11 @@ class PositionIntegrationTest {
     @Autowired private TradeRepository tradeRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private PositionService positionService;
+    @Autowired private RiskLimitRepository riskLimitRepository;
 
     @Test
     void listReturnsPositionWithTicker() {
-        InstrumentResponse instrument = createInstrument("LIST-TEST");
+        InstrumentResponse instrument = createTradableInstrument("LIST-TEST");
         String email = createUser("list@tradedesk.dev");
         tradeService.createTrade(trade(instrument.id(), TradeSide.BUY, "250000"), email);
 
@@ -64,7 +67,7 @@ class PositionIntegrationTest {
     }
     @Test
     void newInstrumentStartsWithZeroPosition() {
-        InstrumentResponse instrument = createInstrument("ZERO-TEST");
+        InstrumentResponse instrument = createTradableInstrument("ZERO-TEST");
 
         Position position = positionRepository.findById(instrument.id()).orElseThrow();
 
@@ -73,7 +76,7 @@ class PositionIntegrationTest {
 
     @Test
     void buyIncreasesAndSellDecreasesExposure() {
-        InstrumentResponse instrument = createInstrument("SIGN-TEST");
+        InstrumentResponse instrument = createTradableInstrument("SIGN-TEST");
         String email = createUser("sign@tradedesk.dev");
 
         tradeService.createTrade(trade(instrument.id(), TradeSide.BUY, "1000000"), email);
@@ -85,7 +88,7 @@ class PositionIntegrationTest {
 
     @Test
     void concurrentTradesOnSameInstrumentDoNotLoseUpdates() throws Exception {
-        InstrumentResponse instrument = createInstrument("CONC-TEST");
+        InstrumentResponse instrument = createTradableInstrument("CONC-TEST");
         String email = createUser("concurrent@tradedesk.dev");
 
         int threads = 20;
@@ -123,6 +126,14 @@ class PositionIntegrationTest {
     private InstrumentResponse createInstrument(String ticker) {
         return instrumentService.create(
                 new CreateInstrumentRequest(ticker, InstrumentType.FX_SPOT, "EUR/USD"));
+    }
+    private InstrumentResponse createTradableInstrument(String ticker) {
+        InstrumentResponse instrument = createInstrument(ticker);
+        RiskLimit limit = new RiskLimit();
+        limit.setInstrumentId(instrument.id());
+        limit.setMaxExposure(new BigDecimal("1000000000"));
+        riskLimitRepository.save(limit);
+        return instrument;
     }
 
     private String createUser(String email) {

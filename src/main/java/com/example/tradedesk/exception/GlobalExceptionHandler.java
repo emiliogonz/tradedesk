@@ -37,6 +37,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body(HttpStatus.UNAUTHORIZED, e.getMessage()));
     }
 
+    @ExceptionHandler({RiskLimitExceededException.class, NoRiskLimitException.class})
+    public ResponseEntity<Map<String, Object>> handleRiskRejection(RuntimeException e) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT)
+                .body(body(HttpStatus.UNPROCESSABLE_CONTENT, e.getMessage()));
+    }
+
     private Map<String, Object> body(HttpStatus status, String message) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", Instant.now().toString());

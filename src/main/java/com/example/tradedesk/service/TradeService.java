@@ -4,10 +4,9 @@ import com.example.tradedesk.domain.*;
 import com.example.tradedesk.dto.CreateTradeRequest;
 import com.example.tradedesk.dto.TradeResponse;
 import com.example.tradedesk.exception.InstrumentNotFoundException;
-import com.example.tradedesk.repository.InstrumentRepository;
-import com.example.tradedesk.repository.PositionRepository;
-import com.example.tradedesk.repository.TradeRepository;
-import com.example.tradedesk.repository.UserRepository;
+import com.example.tradedesk.exception.NoRiskLimitException;
+import com.example.tradedesk.exception.RiskLimitExceededException;
+import com.example.tradedesk.repository.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,13 +23,16 @@ public class TradeService {
     private final InstrumentRepository instrumentRepository;
     private final UserRepository userRepository;
     private final PositionRepository positionRepository;
+    private final RiskLimitRepository riskLimitRepository;
 
     public TradeService(TradeRepository tradeRepository, InstrumentRepository instrumentRepository, UserRepository userRepository,
-                        PositionRepository positionRepository){
+                        PositionRepository positionRepository,
+                        RiskLimitRepository riskLimitRepository){
         this.tradeRepository = tradeRepository;
         this.instrumentRepository = instrumentRepository;
         this.userRepository = userRepository;
         this.positionRepository = positionRepository;
+        this.riskLimitRepository = riskLimitRepository;
     }
 
     @Transactional
@@ -41,11 +43,26 @@ public class TradeService {
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new RuntimeException("Authenticated user not found: " + userEmail));
 
-        // Lock this instrument's position row until commit.
-        // A concurrent trade on the same instrument waits here.
+        // Lock first: everything below sees an exposure no one else can change until commit.
         Position position = positionRepository.findByIdForUpdate(instrument.getId())
                 .orElseThrow(() -> new IllegalStateException(
                         "No position row for instrument " + instrument.getId()));
+
+        // Fail closed: no configured limit means no trading.
+        RiskLimit limit = riskLimitRepository.findById(instrument.getId())
+                .orElseThrow(() -> new NoRiskLimitException(instrument.getTicker()));
+
+        BigDecimal delta = request.side() == TradeSide.BUY
+                ? request.notional()
+                : request.notional().negate();
+        BigDecimal current = position.getNetExposure();
+        BigDecimal proposed = current.add(delta);
+
+        boolean increasesRisk = proposed.abs().compareTo(current.abs()) > 0;
+        boolean overLimit = proposed.abs().compareTo(limit.getMaxExposure()) > 0;
+        if (increasesRisk && overLimit) {
+            throw new RiskLimitExceededException(instrument.getTicker(), proposed, limit.getMaxExposure());
+        }
 
         Trade trade = new Trade();
         trade.setInstrument(instrument);
@@ -58,10 +75,7 @@ public class TradeService {
         trade.setStatus(TradeStatus.OPEN);
         Trade saved = tradeRepository.save(trade);
 
-        BigDecimal delta = trade.getSide() == TradeSide.BUY
-                ? trade.getNotional()
-                : trade.getNotional().negate();
-        position.setNetExposure(position.getNetExposure().add(delta));
+        position.setNetExposure(proposed);
         position.setLastUpdated(OffsetDateTime.now());
 
         return toResponse(saved);
