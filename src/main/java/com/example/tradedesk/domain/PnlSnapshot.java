@@ -3,7 +3,6 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
-import lombok.EqualsAndHashCode;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -12,14 +11,12 @@ import java.time.LocalDate;
 @Table(name = "pnl_snapshots")
 @Getter
 @Setter
-@EqualsAndHashCode
 @NoArgsConstructor
 
 public class PnlSnapshot {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(name = "snapshot_date", nullable = false, unique = true)
@@ -31,4 +28,15 @@ public class PnlSnapshot {
     @Column(name = "unrealized_pnl", nullable = false)
     private BigDecimal unrealizedPnl;
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User other)) return false;
+        return id != null && id.equals(other.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

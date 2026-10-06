@@ -1,6 +1,5 @@
 package com.example.tradedesk.domain;
 import jakarta.persistence.*;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -11,9 +10,6 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @NoArgsConstructor
-@EqualsAndHashCode
-
-
 public class RiskLimit {
 
     @Id
@@ -22,4 +18,16 @@ public class RiskLimit {
 
     @Column(name="max_exposure", nullable = false)
     private BigDecimal maxExposure;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof RiskLimit other)) return false;
+        return instrumentId != null && instrumentId.equals(other.getInstrumentId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

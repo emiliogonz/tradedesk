@@ -1,7 +1,6 @@
 package com.example.tradedesk.domain;
 
 import jakarta.persistence.*;
-import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
 import lombok.NoArgsConstructor;
@@ -12,13 +11,10 @@ import java.time.LocalDate;
 @Table(name = "trades")
 @Getter
 @Setter
-@EqualsAndHashCode
 @NoArgsConstructor
-
 public class Trade {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @EqualsAndHashCode.Include
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -48,4 +44,16 @@ public class Trade {
     @Enumerated(EnumType.STRING)
     @Column(name="status", nullable = false)
     private TradeStatus status;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Trade other)) return false;
+        return id != null && id.equals(other.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }
