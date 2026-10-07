@@ -1,4 +1,6 @@
 package com.example.tradedesk.dto;
 
-public class RiskLimitResponse {
+import java.math.BigDecimal;
+
+public record RiskLimitResponse(Long instrumentId, String ticker, BigDecimal maxExposure) {
 }

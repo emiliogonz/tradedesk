@@ -47,7 +47,8 @@ All endpoints except register and login require `Authorization: Bearer <token>`.
 | POST   | `/api/trades`         | Record a trade for the authenticated user                      |
 | GET    | `/api/trades`         | Search trades — filters: `instrumentId`, `from`, `to` (ISO dates); paginated via `page`, `size`, `sort` |
 | GET    | `/api/positions`      | Net exposure per instrument                                    |
-
+| PUT    | `/api/admin/users/{userId}/role` | Change a user's role (ADMIN only)                    |
+| PUT    | `/api/risk-limits/{instrumentId}` | Create or replace an instrument's limit (RISK only) |
 ## Design decisions
 
 - **Flyway owns the schema.** Hibernate runs with `ddl-auto: validate`, so it
@@ -80,6 +81,11 @@ All endpoints except register and login require `Authorization: Bearer <token>`.
   jointly breach a limit: five simultaneous 300k trades against a 1M limit
   always produce exactly three fills and two rejections. Trades that reduce
   absolute exposure are always allowed, even when the desk is over its limit.
+- **One container and one Spring context for the whole test suite.** All
+  integration tests extend a shared base class holding a singleton
+  Testcontainers Postgres, so Spring's test context cache reuses a single
+  application context. Test data uses generated unique emails and tickers so
+  classes can share the database safely. This cut suite time from 55s to 21s.
 
 ## Known tradeoffs
 
@@ -90,6 +96,10 @@ All endpoints except register and login require `Authorization: Bearer <token>`.
 - `/api/auth/me` detects unauthenticated requests by checking for Spring
   Security's default `anonymousUser` principal, which relies on anonymous
   authentication being enabled by default.
+- **Role changes take effect at the next login.** The role is a claim in the
+  stateless JWT, so a demoted user keeps their old permissions until their
+  token expires (at most 15 minutes). Instant revocation would require a
+  per-request role lookup or a token denylist, trading statelessness for it.
 
 ## Local setup
 
@@ -108,6 +118,18 @@ export JWT_SECRET="replace-with-a-random-string-of-32-plus-chars"    # macOS/Lin
 ```
 
 The API is available at `http://localhost:8080`.
+
+### Bootstrapping the first admin
+
+Registration always creates a `TRADER`. Promote the first admin once per
+environment with SQL; after that, admins manage roles through
+`PUT /api/admin/users/{userId}/role`.
+
+```sql
+UPDATE users SET role = 'ADMIN' WHERE email = 'you@example.com';
+```
+
+The user must log in again to receive a token with the new role.
 
 ### Running tests
 
