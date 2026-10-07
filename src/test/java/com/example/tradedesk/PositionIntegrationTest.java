@@ -1,10 +1,7 @@
 package com.example.tradedesk;
 
+import com.example.tradedesk.domain.*;
 import com.example.tradedesk.domain.Instrument.InstrumentType;
-import com.example.tradedesk.domain.Position;
-import com.example.tradedesk.domain.RiskLimit;
-import com.example.tradedesk.domain.TradeSide;
-import com.example.tradedesk.domain.User;
 import com.example.tradedesk.dto.CreateInstrumentRequest;
 import com.example.tradedesk.dto.CreateTradeRequest;
 import com.example.tradedesk.dto.InstrumentResponse;
@@ -140,7 +137,7 @@ class PositionIntegrationTest {
         User user = new User();
         user.setEmail(email);
         user.setPasswordHash("not-used-in-this-test");
-        user.setRole("TRADER");
+        user.setRole(Role.TRADER);
         userRepository.save(user);
         return email;
     }

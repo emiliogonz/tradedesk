@@ -2,6 +2,7 @@ package com.example.tradedesk.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -41,6 +42,21 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleRiskRejection(RuntimeException e) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT)
                 .body(body(HttpStatus.UNPROCESSABLE_CONTENT, e.getMessage()));
+    }
+    @ExceptionHandler(UserNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleUserNotFound(UserNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body(HttpStatus.NOT_FOUND, e.getMessage()));
+    }
+
+    @ExceptionHandler(LastAdminException.class)
+    public ResponseEntity<Map<String, Object>> handleLastAdmin(LastAdminException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body(HttpStatus.CONFLICT, e.getMessage()));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(body(HttpStatus.FORBIDDEN, "You do not have permission to perform this action"));
     }
 
     private Map<String, Object> body(HttpStatus status, String message) {

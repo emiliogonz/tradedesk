@@ -1,5 +1,6 @@
 package com.example.tradedesk.service;
 
+import com.example.tradedesk.domain.Role;
 import com.example.tradedesk.domain.User;
 import com.example.tradedesk.dto.LoginRequest;
 import com.example.tradedesk.dto.AuthResponse;
@@ -33,10 +34,10 @@ public class AuthService {
         User user = new User();
         user.setEmail(request.email());
         user.setPasswordHash(passwordEncoder.encode(request.password()));
-        user.setRole("TRADER");
+        user.setRole(Role.TRADER);
 
         User saved = userRepository.save(user);
-        return new UserResponse(saved.getId(), saved.getEmail(), saved.getRole());
+        return new UserResponse(saved.getId(), saved.getEmail(), saved.getRole().name());
     }
 
     public AuthResponse login(LoginRequest request) {
