@@ -46,9 +46,10 @@ All endpoints except register and login require `Authorization: Bearer <token>`.
 | GET    | `/api/instruments`    | List instruments                                               |
 | POST   | `/api/trades`         | Record a trade for the authenticated user                      |
 | GET    | `/api/trades`         | Search trades — filters: `instrumentId`, `from`, `to` (ISO dates); paginated via `page`, `size`, `sort` |
-| GET    | `/api/positions`      | Net exposure per instrument                                    |
+| GET    | `/api/positions`      | Positions with limit, average rate, mark, and realized/unrealized P&L.                                |
 | PUT    | `/api/admin/users/{userId}/role` | Change a user's role (ADMIN only)                    |
 | PUT    | `/api/risk-limits/{instrumentId}` | Create or replace an instrument's limit (RISK only) |
+| PUT    | `/api/marks/{instrumentId}`       | Set an instrument's end-of-day mark (RISK only)     |
 ## Design decisions
 
 - **Flyway owns the schema.** Hibernate runs with `ddl-auto: validate`, so it
