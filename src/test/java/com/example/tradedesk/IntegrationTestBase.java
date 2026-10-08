@@ -104,4 +104,10 @@ abstract class IntegrationTestBase {
                 instrumentId, side, new BigDecimal(notional), new BigDecimal("1.0850"),
                 LocalDate.now(), null);
     }
+
+    protected CreateTradeRequest trade(Long instrumentId, TradeSide side, String notional, String rate) {
+        return new CreateTradeRequest(
+                instrumentId, side, new BigDecimal(notional), new BigDecimal(rate),
+                LocalDate.now(), null);
+    }
 }

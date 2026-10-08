@@ -23,4 +23,10 @@ public class Position {
 
     @Column(name = "last_updated", nullable = false)
     private OffsetDateTime lastUpdated;
+
+    @Column(name = "avg_rate")
+    private BigDecimal avgRate;
+
+    @Column(name = "realized_pnl", nullable = false)
+    private BigDecimal realizedPnl = BigDecimal.ZERO;
 }

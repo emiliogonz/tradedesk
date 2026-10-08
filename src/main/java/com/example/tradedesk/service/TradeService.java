@@ -56,7 +56,10 @@ public class TradeService {
                 ? request.notional()
                 : request.notional().negate();
         BigDecimal current = position.getNetExposure();
-        BigDecimal proposed = current.add(delta);
+
+        PnlCalculator.Result result =
+                PnlCalculator.apply(current, position.getAvgRate(), delta, request.rate());
+        BigDecimal proposed = result.netExposure();
 
         boolean increasesRisk = proposed.abs().compareTo(current.abs()) > 0;
         boolean overLimit = proposed.abs().compareTo(limit.getMaxExposure()) > 0;
@@ -75,7 +78,9 @@ public class TradeService {
         trade.setStatus(TradeStatus.OPEN);
         Trade saved = tradeRepository.save(trade);
 
-        position.setNetExposure(proposed);
+        position.setNetExposure(result.netExposure());
+        position.setAvgRate(result.avgRate());
+        position.setRealizedPnl(position.getRealizedPnl().add(result.realizedPnl()));
         position.setLastUpdated(OffsetDateTime.now());
 
         return toResponse(saved);

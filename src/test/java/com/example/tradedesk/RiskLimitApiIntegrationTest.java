@@ -1,6 +1,8 @@
 package com.example.tradedesk;
 
+import com.example.tradedesk.domain.Position;
 import com.example.tradedesk.domain.Role;
+import com.example.tradedesk.domain.TradeSide;
 import com.example.tradedesk.dto.InstrumentResponse;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
@@ -82,6 +84,20 @@ class RiskLimitApiIntegrationTest extends IntegrationTestBase {
 
         setLimit(riskToken, 999_999L, "1000000")
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void tradesMaintainAverageRateAndRealizedPnl() {
+        InstrumentResponse instrument = createTradableInstrument("PNL");
+        String email = createUser(Role.TRADER).getEmail();
+
+        tradeService.createTrade(trade(instrument.id(), TradeSide.BUY, "1000000", "1.0800"), email);
+        tradeService.createTrade(trade(instrument.id(), TradeSide.SELL, "400000", "1.0900"), email);
+
+        Position position = positionRepository.findById(instrument.id()).orElseThrow();
+        assertThat(position.getNetExposure()).isEqualByComparingTo("600000");
+        assertThat(position.getAvgRate()).isEqualByComparingTo("1.0800");
+        assertThat(position.getRealizedPnl()).isEqualByComparingTo("4000");
     }
 
     // --- helpers specific to this class ---
