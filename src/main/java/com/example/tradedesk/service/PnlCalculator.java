@@ -42,4 +42,13 @@ public final class PnlCalculator {
         }
         return new Result(newExposure, newAvg, realized);
     }
+    public static BigDecimal unrealized(BigDecimal exposure, BigDecimal avgRate, BigDecimal mark) {
+        if (exposure.signum() == 0){
+            return BigDecimal.ZERO.setScale(PNL_SCALE);
+        }
+        if (avgRate == null || mark == null) {
+            return null;
+        }
+        return exposure.multiply(mark.subtract(avgRate)).setScale(PNL_SCALE, RoundingMode.HALF_EVEN);
+    }
 }

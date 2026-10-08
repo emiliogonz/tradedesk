@@ -63,4 +63,26 @@ class PnlCalculatorTest {
         assertThat(r.avgRate()).isEqualByComparingTo("1.0900");
         assertThat(r.realizedPnl()).isEqualByComparingTo("4000");   // 400k x 0.0100, short side
     }
+
+    @Test
+    void unrealizedOnLongWhenMarkRises() {
+        assertThat(PnlCalculator.unrealized(bd("1000000"), bd("1.0800"), bd("1.0900")))
+                .isEqualByComparingTo("10000");
+    }
+
+    @Test
+    void unrealizedOnShortWhenMarkFalls() {
+        assertThat(PnlCalculator.unrealized(bd("-1000000"), bd("1.0900"), bd("1.0800")))
+                .isEqualByComparingTo("10000");
+    }
+
+    @Test
+    void unrealizedIsUnknownWithoutMark() {
+        assertThat(PnlCalculator.unrealized(bd("1000000"), bd("1.0800"), null)).isNull();
+    }
+
+    @Test
+    void unrealizedIsZeroWhenFlat() {
+        assertThat(PnlCalculator.unrealized(bd("0"), null, null)).isEqualByComparingTo("0");
+    }
 }
