@@ -147,6 +147,19 @@ All endpoints except register and login require `Authorization: Bearer <token>`.
 
 **Requires:** JDK 25 and Docker.
 
+### Running the full stack in Docker
+
+```bash
+export JWT_SECRET="replace-with-a-random-string-of-32-plus-chars"
+docker compose --profile app up --build -d
+curl http://localhost:8080/actuator/health
+```
+
+The image is a multi-stage build: a JDK stage compiles the app, and the
+runtime stage contains only the JRE and a layered Spring Boot jar, running as
+a non-root user (about 175 MB compressed). `docker compose up -d` without the
+profile still starts only Postgres, for running the app from an IDE.
+
 ```bash
 # 1. Start local Postgres
 docker compose up -d
@@ -199,7 +212,7 @@ repository secret.
 - [x] Testcontainers integration tests (auth flows)
 - [x] CI with GitHub Actions
 - [x] Position tracking (maintained on write, pessimistic row locking)
-- [ ] P&L calculation
+- [x] P&L calculation
 - [x] Risk limit checks (fail-closed, enforced under the position lock)
 - [ ] Risk limit management endpoint (role-restricted)
 - [ ] Remaining trade operations (get by id, amend, cancel)
