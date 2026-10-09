@@ -34,3 +34,14 @@ logging:
 jwt:
   secret: ${JWT_SECRET}
   expiration-ms: 900000
+
+tradedesk:
+  snapshot:
+    cron: "0 0 17 * * MON-FRI"
+    zone: America/New_York
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

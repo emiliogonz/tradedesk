@@ -16,6 +16,21 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+  app:
+    build: .
+    container_name: tradedesk-app
+    profiles: [ "app" ]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/tradedesk
+      SPRING_DATASOURCE_USERNAME: tradedesk
+      SPRING_DATASOURCE_PASSWORD: tradedesk_dev_only
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - "8080:8080"
 
 volumes:
   tradedesk_pgdata:
