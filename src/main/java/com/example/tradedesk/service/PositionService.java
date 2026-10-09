@@ -8,6 +8,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+import static com.example.tradedesk.service.PnlCalculator.quoteCurrency;
+
 @Service
 public class PositionService {
 
@@ -39,9 +41,4 @@ public class PositionService {
         );
     }
 
-    /** "EUR/USD" -> "USD": P&L on a currency pair is in the quote currency. */
-    private static String quoteCurrency(String currencyPair) {
-        int slash = currencyPair.indexOf('/');
-        return slash >= 0 ? currencyPair.substring(slash + 1) : currencyPair;
-    }
 }

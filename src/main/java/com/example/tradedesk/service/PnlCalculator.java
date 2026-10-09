@@ -51,4 +51,10 @@ public final class PnlCalculator {
         }
         return exposure.multiply(mark.subtract(avgRate)).setScale(PNL_SCALE, RoundingMode.HALF_EVEN);
     }
+
+    /** "EUR/USD" -> "USD": P&L on a currency pair is denominated in the quote currency. */
+    public static String quoteCurrency(String currencyPair) {
+        int slash = currencyPair.indexOf('/');
+        return slash >= 0 ? currencyPair.substring(slash + 1) : currencyPair;
+    }
 }

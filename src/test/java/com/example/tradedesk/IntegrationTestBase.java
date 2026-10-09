@@ -30,7 +30,7 @@ import java.util.UUID;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
+@SpringBootTest(properties = "tradedesk.snapshot.cron=-")
 @AutoConfigureMockMvc
 abstract class IntegrationTestBase {
 

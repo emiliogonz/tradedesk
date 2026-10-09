@@ -50,6 +50,7 @@ All endpoints except register and login require `Authorization: Bearer <token>`.
 | PUT    | `/api/admin/users/{userId}/role` | Change a user's role (ADMIN only)                    |
 | PUT    | `/api/risk-limits/{instrumentId}` | Create or replace an instrument's limit (RISK only) |
 | PUT    | `/api/marks/{instrumentId}`       | Set an instrument's end-of-day mark (RISK only)     |
+| GET    | `/api/pnl?from=&to=`              | Daily P&L snapshots per instrument, in quote currency |
 ## Design decisions
 
 - **Flyway owns the schema.** Hibernate runs with `ddl-auto: validate`, so it
@@ -87,6 +88,37 @@ All endpoints except register and login require `Authorization: Bearer <token>`.
   Testcontainers Postgres, so Spring's test context cache reuses a single
   application context. Test data uses generated unique emails and tickers so
   classes can share the database safely. This cut suite time from 55s to 21s.
+- **P&L uses weighted-average cost, maintained on write.** Each position
+  stores its average entry rate and cumulative realized P&L, updated in the
+  same transaction and under the same row lock as the trade itself, so
+  concurrent trades can't corrupt either. Adding to a position blends the
+  average; reducing realizes P&L on the closed quantity and leaves the average
+  unchanged; trading through zero realizes the closed part and opens the
+  remainder at the trade's rate.
+- **The P&L rules live in one pure class.** `PnlCalculator` has no Spring or
+  database dependencies, so every case (opening, blending, partial and full
+  close, flipping, shorts) is covered by unit tests that run in milliseconds.
+  Integration tests only verify that the results are persisted.
+- **Money math uses banker's rounding.** All P&L and average-rate calculations
+  use `BigDecimal` with `RoundingMode.HALF_EVEN`, avoiding the upward bias that
+  always rounding .5 up introduces over many operations.
+- **P&L is reported in each instrument's quote currency and never summed
+  across currencies.** EUR/USD P&L is in USD, USD/JPY in JPY. Every position
+  and snapshot carries its currency, so no client can add a JPY figure to a USD
+  one.
+- **Unknown is not zero.** Unrealized P&L is `null` when an instrument has no
+  mark, and `0` only when the position is flat. Reporting `0` for an unmarked
+  position would falsely claim it is breaking even.
+- **Marks are set by RISK and attributed.** End-of-day rates are posted
+  through a RISK-only endpoint, and each mark stores who set it and when,
+  because a mark directly changes reported P&L.
+- **Daily snapshots follow FX conventions and are idempotent.** A scheduled
+  job records each active position at 5pm New York time (the FX end-of-day
+  convention), using the same time zone for the trigger and the snapshot date.
+  Snapshots store cumulative realized P&L, so a day's P&L is the difference
+  between consecutive snapshots and a missed day doesn't corrupt later ones.
+  Re-running the job for a date replaces that date's rows rather than
+  duplicating or failing.
 
 ## Known tradeoffs
 
@@ -101,7 +133,16 @@ All endpoints except register and login require `Authorization: Bearer <token>`.
   stateless JWT, so a demoted user keeps their old permissions until their
   token expires (at most 15 minutes). Instant revocation would require a
   per-request role lookup or a token denylist, trading statelessness for it.
-
+- **Average rates for pre-existing positions are approximated.** The migration
+  that introduced P&L tracking backfilled average rates from the volume-weighted
+  rate of trades on each position's current side. This is exact for positions
+  that were only ever added to, and approximate for those partially reduced
+  before the migration. Only local development data predates it.
+- **The snapshot job runs on every application instance.** With more than one
+  instance deployed, each runs the job at 5pm New York. Because the job is
+  idempotent this is harmless, but it does redundant work; a distributed lock
+  (for example, ShedLock) would make it run exactly once.
+- 
 ## Local setup
 
 **Requires:** JDK 25 and Docker.
