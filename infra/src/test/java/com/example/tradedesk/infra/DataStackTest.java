@@ -22,6 +22,13 @@ class DataStackTest {
     }
 
     @Test
+    void repositoryHasImmutableTagsAndScanOnPush() {
+        template.hasResourceProperties("AWS::ECR::Repository", Map.of(
+                "ImageTagMutability", "IMMUTABLE",
+                "ImageScanningConfiguration", Map.of("ScanOnPush", true)));
+    }
+
+    @Test
     void databaseAcceptsPostgresOnlyFromAnotherSecurityGroup() {
         template.hasResourceProperties("AWS::EC2::SecurityGroupIngress", Map.of(
                 "IpProtocol", "tcp",

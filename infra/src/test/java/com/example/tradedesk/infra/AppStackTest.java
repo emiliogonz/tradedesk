@@ -1,0 +1,53 @@
+package com.example.tradedesk.infra;
+
+import org.junit.jupiter.api.Test;
+import software.amazon.awscdk.App;
+import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.assertions.Match;
+import software.amazon.awscdk.assertions.Template;
+
+import java.util.List;
+import java.util.Map;
+
+class AppStackTest {
+
+    private final Template template;
+
+    AppStackTest() {
+        App app = new App();
+        DataStack data = new DataStack(app, "Data", StackProps.builder().build());
+        template = Template.fromStack(new AppStack(app, "App", StackProps.builder().build(), data, "test"));
+    }
+
+    @Test
+    void jwtSecretComesFromSecretsManager() {
+        assertOption("aws:elasticbeanstalk:application:environmentsecrets", "JWT_SECRET");
+    }
+
+    @Test
+    void databasePasswordComesFromSecretsManager() {
+        assertOption("aws:elasticbeanstalk:application:environmentsecrets", "SPRING_DATASOURCE_PASSWORD");
+    }
+
+    @Test
+    void deploymentsAreImmutable() {
+        assertOption("aws:elasticbeanstalk:command", "DeploymentPolicy", "Immutable");
+    }
+
+    @Test
+    void healthCheckUsesActuator() {
+        assertOption("aws:elasticbeanstalk:environment:process:default", "HealthCheckPath", "/actuator/health");
+    }
+
+    private void assertOption(String namespace, String name) {
+        template.hasResourceProperties("AWS::ElasticBeanstalk::Environment", Map.of(
+                "OptionSettings", Match.arrayWith(List.of(Match.objectLike(Map.of(
+                        "Namespace", namespace, "OptionName", name))))));
+    }
+
+    private void assertOption(String namespace, String name, String value) {
+        template.hasResourceProperties("AWS::ElasticBeanstalk::Environment", Map.of(
+                "OptionSettings", Match.arrayWith(List.of(Match.objectLike(Map.of(
+                        "Namespace", namespace, "OptionName", name, "Value", value))))));
+    }
+}
