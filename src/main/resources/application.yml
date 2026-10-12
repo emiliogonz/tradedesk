@@ -9,6 +9,7 @@ spring:
     driver-class-name: org.postgresql.Driver
 
   jpa:
+    open-in-view: false
     hibernate:
       # Flyway owns the schema — Hibernate should only validate it matches,
       # never auto-generate or alter it. This is the "good database design"
