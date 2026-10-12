@@ -23,7 +23,7 @@ public final class TradedeskInfraApp {
                 throw new IllegalArgumentException(
                         "imageTag is empty. Pass a real tag, e.g. -c imageTag=$(git rev-parse --short HEAD)");
             }
-            new AppStack(app, "TradedeskApp", StackProps.builder().env(env).build(), data, imageTag);
+            new AppStack(app, "TradedeskApp", StackProps.builder().env(env).build(), imageTag);
         }
 
         new CiStack(app, "TradedeskCi", StackProps.builder().env(env).build(), data);

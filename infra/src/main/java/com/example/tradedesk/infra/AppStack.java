@@ -3,7 +3,7 @@ package com.example.tradedesk.infra;
 import software.amazon.awscdk.CfnOutput;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
-import software.amazon.awscdk.services.ec2.ISubnet;
+import software.amazon.awscdk.services.ecr.Repository;
 import software.amazon.awscdk.services.elasticbeanstalk.CfnApplication;
 import software.amazon.awscdk.services.elasticbeanstalk.CfnApplicationVersion;
 import software.amazon.awscdk.services.elasticbeanstalk.CfnEnvironment;
@@ -12,6 +12,8 @@ import software.amazon.awscdk.services.iam.ManagedPolicy;
 import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.iam.ServicePrincipal;
 import software.amazon.awscdk.services.s3.assets.Asset;
+import software.amazon.awscdk.services.secretsmanager.Secret;
+import software.amazon.awscdk.services.ssm.StringParameter;
 import software.constructs.Construct;
 
 import java.io.IOException;
@@ -20,7 +22,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-/** The running application. Safe to destroy and recreate; all state lives in DataStack. */
+/**
+ * The running application. Safe to destroy and recreate; all state lives in DataStack.
+ * Reads DataStack's values from SSM Parameter Store, so the two stacks deploy independently.
+ */
 public class AppStack extends Stack {
 
     /** From: aws elasticbeanstalk list-available-solution-stacks (see README). */
@@ -29,8 +34,17 @@ public class AppStack extends Stack {
     private static final String ENV = "aws:elasticbeanstalk:application:environment";
     private static final String SECRETS = "aws:elasticbeanstalk:application:environmentsecrets";
 
-    public AppStack(Construct scope, String id, StackProps props, DataStack data, String imageTag) {
+    public AppStack(Construct scope, String id, StackProps props, String imageTag) {
         super(scope, id, props);
+
+        // --- Values published by DataStack, resolved by CloudFormation at deploy time ---
+        String vpcId = param("vpc-id");
+        String publicSubnets = param("public-subnet-ids");
+        String appSecurityGroupId = param("app-security-group-id");
+        String dbSecretArn = param("db-secret-arn");
+        String jwtSecretArn = param("jwt-secret-arn");
+        String jdbcUrl = "jdbc:postgresql://" + param("db-endpoint-address")
+                + ":" + param("db-endpoint-port") + "/tradedesk";
 
         // --- What to run: a Dockerrun file pointing at one exact image in ECR ---
         String imageUri = "%s.dkr.ecr.%s.amazonaws.com/%s:%s"
@@ -57,9 +71,9 @@ public class AppStack extends Stack {
                 .assumedBy(new ServicePrincipal("ec2.amazonaws.com"))
                 .managedPolicies(List.of(ManagedPolicy.fromAwsManagedPolicyName("AWSElasticBeanstalkWebTier")))
                 .build();
-        data.getRepository().grantPull(instanceRole);
-        data.getDatabase().getSecret().grantRead(instanceRole);
-        data.getJwtSecret().grantRead(instanceRole);
+        Repository.fromRepositoryName(this, "AppRepository", DataStack.REPOSITORY_NAME).grantPull(instanceRole);
+        Secret.fromSecretCompleteArn(this, "DbSecret", dbSecretArn).grantRead(instanceRole);
+        Secret.fromSecretCompleteArn(this, "JwtSecret", jwtSecretArn).grantRead(instanceRole);
 
         CfnInstanceProfile instanceProfile = CfnInstanceProfile.Builder.create(this, "InstanceProfile")
                 .roles(List.of(instanceRole.getRoleName()))
@@ -73,15 +87,9 @@ public class AppStack extends Stack {
                 .build();
 
         // --- Where and how it runs ---
-        String publicSubnets = String.join(",",
-                data.getVpc().getPublicSubnets().stream().map(ISubnet::getSubnetId).toList());
-        String dbSecretArn = data.getDatabase().getSecret().getSecretArn();
-        String jdbcUrl = "jdbc:postgresql://" + data.getDatabase().getDbInstanceEndpointAddress()
-                + ":" + data.getDatabase().getDbInstanceEndpointPort() + "/tradedesk";
-
         List<CfnEnvironment.OptionSettingProperty> options = List.of(
                 // Network: instances and load balancer in public subnets, no NAT gateway needed
-                opt("aws:ec2:vpc", "VPCId", data.getVpc().getVpcId()),
+                opt("aws:ec2:vpc", "VPCId", vpcId),
                 opt("aws:ec2:vpc", "Subnets", publicSubnets),
                 opt("aws:ec2:vpc", "ELBSubnets", publicSubnets),
                 opt("aws:ec2:vpc", "AssociatePublicIpAddress", "true"),
@@ -89,8 +97,7 @@ public class AppStack extends Stack {
                 // Instances: one Graviton instance, in the security group the database trusts
                 opt("aws:ec2:instances", "InstanceTypes", "t4g.small"),
                 opt("aws:autoscaling:launchconfiguration", "IamInstanceProfile", instanceProfile.getRef()),
-                opt("aws:autoscaling:launchconfiguration", "SecurityGroups",
-                        data.getAppSecurityGroup().getSecurityGroupId()),
+                opt("aws:autoscaling:launchconfiguration", "SecurityGroups", appSecurityGroupId),
                 opt("aws:autoscaling:asg", "MinSize", "1"),
                 opt("aws:autoscaling:asg", "MaxSize", "1"),
 
@@ -112,7 +119,7 @@ public class AppStack extends Stack {
                 // Secrets: only ARNs here; each instance fetches the values at startup
                 opt(SECRETS, "SPRING_DATASOURCE_USERNAME", dbSecretArn + ":username"),
                 opt(SECRETS, "SPRING_DATASOURCE_PASSWORD", dbSecretArn + ":password"),
-                opt(SECRETS, "JWT_SECRET", data.getJwtSecret().getSecretArn())
+                opt(SECRETS, "JWT_SECRET", jwtSecretArn)
         );
 
         CfnEnvironment environment = CfnEnvironment.Builder.create(this, "Environment")
@@ -126,6 +133,11 @@ public class AppStack extends Stack {
         CfnOutput.Builder.create(this, "Url")
                 .value("http://" + environment.getAttrEndpointUrl())
                 .build();
+    }
+
+    /** A value DataStack published to SSM, resolved by CloudFormation when this stack deploys. */
+    private String param(String name) {
+        return StringParameter.valueForStringParameter(this, DataStack.PARAM_PREFIX + name);
     }
 
     private static CfnEnvironment.OptionSettingProperty opt(String namespace, String name, String value) {

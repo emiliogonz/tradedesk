@@ -38,6 +38,13 @@ class DataStackTest {
     }
 
     @Test
+    void publishesValuesForOtherStacksToSsm() {
+        template.resourceCountIs("AWS::SSM::Parameter", 7);
+        template.hasResourceProperties("AWS::SSM::Parameter", Map.of(
+                "Name", DataStack.PARAM_PREFIX + "db-secret-arn"));
+    }
+
+    @Test
     void noNatGatewaysAreCreated() {
         template.resourceCountIs("AWS::EC2::NatGateway", 0);
     }

@@ -5,6 +5,7 @@ import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.RemovalPolicy;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.services.ssm.StringParameter;
 import software.amazon.awscdk.services.ec2.InstanceClass;
 import software.amazon.awscdk.services.ec2.InstanceSize;
 import software.amazon.awscdk.services.ec2.InstanceType;
@@ -37,6 +38,7 @@ public class DataStack extends Stack {
     private final DatabaseInstance database;
     private final Secret jwtSecret;
     public static final String REPOSITORY_NAME = "tradedesk";
+    public static final String PARAM_PREFIX = "/tradedesk/data/";
 
     private final Repository repository;
 
@@ -111,6 +113,14 @@ public class DataStack extends Stack {
                 .value(database.getSecret().getSecretArn()).build();
         CfnOutput.Builder.create(this, "JwtSecretArn")
                 .value(jwtSecret.getSecretArn()).build();
+        publish("vpc-id", vpc.getVpcId());
+        publish("public-subnet-ids", String.join(",",
+                vpc.getPublicSubnets().stream().map(s -> s.getSubnetId()).toList()));
+        publish("app-security-group-id", appSecurityGroup.getSecurityGroupId());
+        publish("db-endpoint-address", database.getDbInstanceEndpointAddress());
+        publish("db-endpoint-port", database.getDbInstanceEndpointPort());
+        publish("db-secret-arn", database.getSecret().getSecretArn());
+        publish("jwt-secret-arn", jwtSecret.getSecretArn());
     }
 
     public Vpc getVpc() { return vpc; }
@@ -118,4 +128,11 @@ public class DataStack extends Stack {
     public DatabaseInstance getDatabase() { return database; }
     public Secret getJwtSecret() { return jwtSecret; }
     public Repository getRepository() { return repository; }
+    private void publish(String name, String value) {
+        StringParameter.Builder.create(this, "Param-" + name)
+                .parameterName(PARAM_PREFIX + name)
+                .stringValue(value)
+                .build();
+    }
+
 }

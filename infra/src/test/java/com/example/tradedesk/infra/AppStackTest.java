@@ -15,8 +15,7 @@ class AppStackTest {
 
     AppStackTest() {
         App app = new App();
-        DataStack data = new DataStack(app, "Data", StackProps.builder().build());
-        template = Template.fromStack(new AppStack(app, "App", StackProps.builder().build(), data, "test"));
+        template = Template.fromStack(new AppStack(app, "App", StackProps.builder().build(), "test"));
     }
 
     @Test
