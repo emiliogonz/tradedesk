@@ -69,7 +69,9 @@ public class AppStack extends Stack {
         // --- Who the instances are: pull this image, read these two secrets, nothing more ---
         Role instanceRole = Role.Builder.create(this, "InstanceRole")
                 .assumedBy(new ServicePrincipal("ec2.amazonaws.com"))
-                .managedPolicies(List.of(ManagedPolicy.fromAwsManagedPolicyName("AWSElasticBeanstalkWebTier")))
+                .managedPolicies(List.of(
+                        ManagedPolicy.fromAwsManagedPolicyName("AWSElasticBeanstalkWebTier"),
+                        ManagedPolicy.fromAwsManagedPolicyName("AmazonSSMManagedInstanceCore")))
                 .build();
         Repository.fromRepositoryName(this, "AppRepository", DataStack.REPOSITORY_NAME).grantPull(instanceRole);
         Secret.fromSecretCompleteArn(this, "DbSecret", dbSecretArn).grantRead(instanceRole);
