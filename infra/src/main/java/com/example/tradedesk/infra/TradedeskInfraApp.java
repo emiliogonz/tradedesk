@@ -26,6 +26,8 @@ public final class TradedeskInfraApp {
             new AppStack(app, "TradedeskApp", StackProps.builder().env(env).build(), data, imageTag);
         }
 
+        new CiStack(app, "TradedeskCi", StackProps.builder().env(env).build(), data);
+
         Tags.of(app).add("project", "tradedesk");
         app.synth();
     }
