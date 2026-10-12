@@ -15,7 +15,7 @@ import java.util.Map;
 /** Lets GitHub Actions authenticate to AWS with short-lived OIDC tokens. No stored keys. */
 public class CiStack extends Stack {
 
-    static final String GITHUB_REPO = "emiliogonz/tradedesk";
+    static final String GITHUB_SUBJECT = "repo:emiliogonz@118968940/tradedesk@1392030096";
     private static final String GITHUB_TOKEN_HOST = "token.actions.githubusercontent.com";
 
     public CiStack(Construct scope, String id, StackProps props, DataStack data) {
@@ -29,7 +29,7 @@ public class CiStack extends Stack {
         // Build job: runs on pushes to master, may only push images to this one repository.
         Role buildRole = Role.Builder.create(this, "BuildRole")
                 .description("GitHub Actions: build and push images from master")
-                .assumedBy(githubPrincipal(github, "repo:" + GITHUB_REPO + ":ref:refs/heads/master"))
+                .assumedBy(githubPrincipal(github, GITHUB_SUBJECT + ":ref:refs/heads/master"))
                 .build();
         data.getRepository().grantPullPush(buildRole);
         data.getRepository().grant(buildRole, "ecr:DescribeImages");
@@ -37,7 +37,7 @@ public class CiStack extends Stack {
         // Deploy job: only reachable through the approved 'production' environment.
         Role deployRole = Role.Builder.create(this, "DeployRole")
                 .description("GitHub Actions: deploy the app stack after approval")
-                .assumedBy(githubPrincipal(github, "repo:" + GITHUB_REPO + ":environment:production"))
+                .assumedBy(githubPrincipal(github, GITHUB_SUBJECT + ":environment:production"))
                 .build();
         deployRole.addToPolicy(PolicyStatement.Builder.create()
                 .actions(List.of("sts:AssumeRole"))

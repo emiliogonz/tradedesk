@@ -21,12 +21,12 @@ class CiStackTest {
 
     @Test
     void buildRoleTrustsOnlyMasterOfThisRepo() {
-        assertTrustedSubject("repo:" + CiStack.GITHUB_REPO + ":ref:refs/heads/master");
+        assertTrustedSubject(CiStack.GITHUB_SUBJECT + ":ref:refs/heads/master");
     }
 
     @Test
     void deployRoleTrustsOnlyTheProductionEnvironment() {
-        assertTrustedSubject("repo:" + CiStack.GITHUB_REPO + ":environment:production");
+        assertTrustedSubject(CiStack.GITHUB_SUBJECT + ":environment:production");
     }
 
     private void assertTrustedSubject(String subject) {
