@@ -39,4 +39,11 @@ public class UserAdminService {
         target.setRole(newRole);
         return new UserResponse(target.getId(), target.getEmail(), target.getRole().name());
     }
+    @PreAuthorize("hasRole('ADMIN')")
+    @Transactional(readOnly = true)
+    public List<UserResponse> listUsers() {
+        return userRepository.findAllByOrderByIdAsc().stream()
+                .map(u -> new UserResponse(u.getId(), u.getEmail(), u.getRole().name()))
+                .toList();
+    }
 }

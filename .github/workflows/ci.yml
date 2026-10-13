@@ -96,3 +96,10 @@ jobs:
       - name: Deploy
         working-directory: infra
         run: cdk deploy TradedeskApp --exclusively --require-approval never -c imageTag=${{ needs.build.outputs.tag }}
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 10); do
+            curl -fsS https://api.tradedesk.emiliogonz.com/actuator/health && exit 0
+            sleep 15
+          done
+          echo "Health check failed after deploy" && exit 1

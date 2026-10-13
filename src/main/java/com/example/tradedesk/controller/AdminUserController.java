@@ -6,6 +6,8 @@ import com.example.tradedesk.service.UserAdminService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/admin/users")
 public class AdminUserController {
@@ -19,5 +21,9 @@ public class AdminUserController {
     public UserResponse changeRole(@PathVariable Long userId,
                                    @Valid @RequestBody ChangeRoleRequest request){
         return userAdminService.changeRole(userId, request.role());
+    }
+    @GetMapping
+    public List<UserResponse> list() {
+        return userAdminService.listUsers();
     }
 }

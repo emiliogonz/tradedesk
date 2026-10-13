@@ -1,5 +1,7 @@
 package com.example.tradedesk;
 
+import com.example.tradedesk.domain.Role;
+import com.example.tradedesk.domain.User;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
@@ -12,7 +14,13 @@ class AuthIntegrationTest extends IntegrationTestBase {
     @Test
     void tradesEndpointRejectsRequestWithNoToken() throws Exception {
         mockMvc.perform(get("/api/trades"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void invalidTokenIsUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/trades").header("Authorization", "Bearer not-a-real-token"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -95,5 +103,19 @@ class AuthIntegrationTest extends IntegrationTestBase {
         mockMvc.perform(get("/actuator/health"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("UP"));
+    }
+
+    @Test
+    void meReturnsCurrentUserAsJson() throws Exception {
+        User user = createUser(Role.RISK);
+        mockMvc.perform(get("/api/auth/me").header("Authorization", "Bearer " + loginAs(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value(user.getEmail()))
+                .andExpect(jsonPath("$.role").value("RISK"));
+    }
+
+    @Test
+    void meRequiresAuthentication() throws Exception {
+        mockMvc.perform(get("/api/auth/me")).andExpect(status().isUnauthorized());
     }
 }

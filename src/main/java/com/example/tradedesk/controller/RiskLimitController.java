@@ -6,6 +6,8 @@ import com.example.tradedesk.service.RiskLimitService;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/risk-limits")
 public class RiskLimitController {
@@ -20,5 +22,9 @@ public class RiskLimitController {
     public RiskLimitResponse setLimit(@PathVariable Long instrumentId,
                                       @Valid @RequestBody SetRiskLimitRequest request) {
         return riskLimitService.setLimit(instrumentId, request.maxExposure());
+    }
+    @GetMapping
+    public List<RiskLimitResponse> list() {
+        return riskLimitService.listLimits();
     }
 }

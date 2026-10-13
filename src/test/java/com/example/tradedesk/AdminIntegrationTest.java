@@ -2,6 +2,7 @@ package com.example.tradedesk;
 
 import com.example.tradedesk.domain.Role;
 import com.example.tradedesk.domain.User;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
@@ -68,6 +69,20 @@ class AdminIntegrationTest extends IntegrationTestBase {
                 .andExpect(status().isConflict());
 
         assertThat(roleOf(soleAdmin)).isEqualTo(Role.ADMIN);
+    }
+
+    @Test
+    void adminCanListUsers() throws Exception {
+        User target = createUser(Role.TRADER);
+        mockMvc.perform(get("/api/admin/users").header("Authorization", "Bearer " + loginAs(createUser(Role.ADMIN))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.id == " + target.getId() + ")].role").value("TRADER"));
+    }
+
+    @Test
+    void traderCannotListUsers() throws Exception {
+        mockMvc.perform(get("/api/admin/users").header("Authorization", "Bearer " + loginAs(createUser(Role.TRADER))))
+                .andExpect(status().isForbidden());
     }
 
     // --- helpers specific to this class ---

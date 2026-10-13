@@ -280,6 +280,7 @@ All endpoints except register, login, and health require
 - **Single instance, single-AZ database.** Chosen to keep costs minimal for a
   portfolio project; production would use Multi-AZ RDS and at least two
   instances across availability zones.
+- **Immutable deployments vs. load balancer config.** Beanstalk's Immutable policy gives zero-downtime deploys with automatic rollback, but it rejects updates that change load balancer settings and the app version together. CloudFormation still reports success, because it only sees that the call to Beanstalk returned. Load balancer changes are deployed on their own with the running image tag, and CI runs a health check after each deploy instead of trusting the stack status.
 
 ## Local setup
 

@@ -10,8 +10,11 @@ import com.example.tradedesk.exception.EmailAlreadyExistsException;
 import com.example.tradedesk.exception.InvalidCredentialsException;
 import com.example.tradedesk.repository.UserRepository;
 import com.example.tradedesk.security.JwtService;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 public class AuthService {
@@ -50,5 +53,11 @@ public class AuthService {
 
         String token = jwtService.generateToken(user);
         return new AuthResponse(token, "Bearer");
+    }
+    @Transactional(readOnly = true)
+    public UserResponse currentUser(String email) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        return new UserResponse(user.getId(), user.getEmail(), user.getRole().name());
     }
 }

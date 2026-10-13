@@ -5,6 +5,7 @@ import com.example.tradedesk.domain.Role;
 import com.example.tradedesk.domain.TradeSide;
 import com.example.tradedesk.dto.InstrumentResponse;
 import org.junit.jupiter.api.Test;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.ResultActions;
 
@@ -98,6 +99,15 @@ class RiskLimitApiIntegrationTest extends IntegrationTestBase {
         assertThat(position.getNetExposure()).isEqualByComparingTo("600000");
         assertThat(position.getAvgRate()).isEqualByComparingTo("1.0800");
         assertThat(position.getRealizedPnl()).isEqualByComparingTo("4000");
+    }
+
+    @Test
+    void traderCanReadLimits() throws Exception {
+        InstrumentResponse instrument = createInstrument("RL");
+        setLimitDirectly(instrument.id(), "1000000");
+        mockMvc.perform(get("/api/risk-limits").header("Authorization", "Bearer " + loginAs(createUser(Role.TRADER))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[?(@.instrumentId == " + instrument.id() + ")].ticker").value(instrument.ticker()));
     }
 
     // --- helpers specific to this class ---
