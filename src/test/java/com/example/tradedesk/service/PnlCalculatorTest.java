@@ -3,6 +3,7 @@ package com.example.tradedesk.service;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -84,5 +85,22 @@ class PnlCalculatorTest {
     @Test
     void unrealizedIsZeroWhenFlat() {
         assertThat(PnlCalculator.unrealized(bd("0"), null, null)).isEqualByComparingTo("0");
+    }
+    @Test
+    void replayReflectsACancelledEarlierTrade() {
+        var all = PnlCalculator.replay(List.of(
+                fill("1000000", "1.0800"), fill("1000000", "1.0900"), fill("-1000000", "1.1000")));
+        assertThat(all.realizedPnl()).isEqualByComparingTo("15000");   // sold against avg 1.0850
+        assertThat(all.netExposure()).isEqualByComparingTo("1000000");
+
+        var withoutFirst = PnlCalculator.replay(List.of(
+                fill("1000000", "1.0900"), fill("-1000000", "1.1000")));
+        assertThat(withoutFirst.realizedPnl()).isEqualByComparingTo("10000");   // sold against avg 1.0900
+        assertThat(withoutFirst.netExposure()).isEqualByComparingTo("0");
+        assertThat(withoutFirst.avgRate()).isNull();
+    }
+
+    private static PnlCalculator.Fill fill(String qty, String rate) {
+        return new PnlCalculator.Fill(bd(qty), bd(rate));
     }
 }

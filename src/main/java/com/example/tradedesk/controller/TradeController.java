@@ -1,5 +1,6 @@
 package com.example.tradedesk.controller;
 
+import com.example.tradedesk.dto.AmendTradeRequest;
 import com.example.tradedesk.dto.CreateTradeRequest;
 import com.example.tradedesk.dto.TradeResponse;
 import com.example.tradedesk.service.TradeService;
@@ -39,5 +40,28 @@ public class TradeController {
             Pageable pageable
     ) {
         return tradeService.searchTrades(instrumentId, from, to, pageable);
+    }
+    @GetMapping("/{id}")
+    public TradeResponse get(@PathVariable Long id) {
+        return tradeService.getTrade(id);
+    }
+
+    @PostMapping("/{id}/cancel")
+    public TradeResponse cancel(@PathVariable Long id, Authentication authentication) {
+        return tradeService.cancelTrade(id, authentication.getName(), isRisk(authentication));
+    }
+
+    @PostMapping("/{id}/amend")
+    public ResponseEntity<TradeResponse> amend(@PathVariable Long id,
+                                               @Valid @RequestBody AmendTradeRequest request,
+                                               Authentication authentication) {
+        TradeResponse replacement =
+                tradeService.amendTrade(id, request, authentication.getName(), isRisk(authentication));
+        return ResponseEntity.status(HttpStatus.CREATED).body(replacement);
+    }
+
+    private static boolean isRisk(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_RISK"));
     }
 }

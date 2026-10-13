@@ -59,6 +59,16 @@ public class GlobalExceptionHandler {
                 .body(body(HttpStatus.FORBIDDEN, "You do not have permission to perform this action"));
     }
 
+    @ExceptionHandler(TradeNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleTradeNotFound(TradeNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(body(HttpStatus.NOT_FOUND, e.getMessage()));
+    }
+
+    @ExceptionHandler(TradeNotLiveException.class)
+    public ResponseEntity<Map<String, Object>> handleTradeNotLive(TradeNotLiveException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(body(HttpStatus.CONFLICT, e.getMessage()));
+    }
+
     private Map<String, Object> body(HttpStatus status, String message) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("timestamp", Instant.now().toString());

@@ -6,6 +6,7 @@ import lombok.Setter;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "trades")
@@ -44,6 +45,18 @@ public class Trade {
     @Enumerated(EnumType.STRING)
     @Column(name="status", nullable = false)
     private TradeStatus status;
+
+    @Column(name = "amends_trade_id")
+    private Long amendsTradeId;
+
+    @Column(name = "origin_trade_id")
+    private Long originTradeId;
+
+    @Column(name = "corrected_at")
+    private OffsetDateTime correctedAt;
+
+    @Column(name = "corrected_by")
+    private String correctedBy;
 
     @Override
     public boolean equals(Object o) {

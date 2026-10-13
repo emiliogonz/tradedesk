@@ -14,6 +14,7 @@ public record TradeResponse(
         BigDecimal rate,
         LocalDate tradeDate,
         LocalDate maturityDate,
-        TradeStatus status
+        TradeStatus status,
+        Long amendsTradeId
 ) {
 }

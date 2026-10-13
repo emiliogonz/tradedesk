@@ -2,6 +2,7 @@ package com.example.tradedesk.service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.List;
 
 public final class PnlCalculator {
     public static final int RATE_SCALE = 8;
@@ -50,6 +51,26 @@ public final class PnlCalculator {
             return null;
         }
         return exposure.multiply(mark.subtract(avgRate)).setScale(PNL_SCALE, RoundingMode.HALF_EVEN);
+    }
+
+    /** One trade's effect on a position: signed quantity (positive = buy) at a rate. */
+    public record Fill(BigDecimal signedQty, BigDecimal rate) {}
+
+    /**
+     * Rebuilds a position from scratch by applying fills in order.
+     * The result's realizedPnl is cumulative across all fills.
+     */
+    public static Result replay(List<Fill> fills) {
+        BigDecimal exposure = BigDecimal.ZERO;
+        BigDecimal avgRate = null;
+        BigDecimal realized = BigDecimal.ZERO.setScale(PNL_SCALE);
+        for (Fill fill : fills) {
+            Result step = apply(exposure, avgRate, fill.signedQty(), fill.rate());
+            exposure = step.netExposure();
+            avgRate = step.avgRate();
+            realized = realized.add(step.realizedPnl());
+        }
+        return new Result(exposure, avgRate, realized);
     }
 
     /** "EUR/USD" -> "USD": P&L on a currency pair is denominated in the quote currency. */
