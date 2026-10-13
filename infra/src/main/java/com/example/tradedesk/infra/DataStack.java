@@ -1,10 +1,9 @@
 package com.example.tradedesk.infra;
 
-import software.amazon.awscdk.CfnOutput;
-import software.amazon.awscdk.Duration;
-import software.amazon.awscdk.RemovalPolicy;
-import software.amazon.awscdk.Stack;
-import software.amazon.awscdk.StackProps;
+import software.amazon.awscdk.*;
+import software.amazon.awscdk.services.certificatemanager.Certificate;
+import software.amazon.awscdk.services.certificatemanager.CertificateValidation;
+import software.amazon.awscdk.services.route53.PublicHostedZone;
 import software.amazon.awscdk.services.ssm.StringParameter;
 import software.amazon.awscdk.services.ec2.InstanceClass;
 import software.amazon.awscdk.services.ec2.InstanceSize;
@@ -38,6 +37,8 @@ public class DataStack extends Stack {
     private final DatabaseInstance database;
     private final Secret jwtSecret;
     public static final String REPOSITORY_NAME = "tradedesk";
+    public static final String DOMAIN = "tradedesk.emiliogonz.com";
+    public static final String API_DOMAIN = "api." + DOMAIN;
     public static final String PARAM_PREFIX = "/tradedesk/data/";
 
     private final Repository repository;
@@ -113,7 +114,19 @@ public class DataStack extends Stack {
                 .value(database.getSecret().getSecretArn()).build();
         CfnOutput.Builder.create(this, "JwtSecretArn")
                 .value(jwtSecret.getSecretArn()).build();
+        PublicHostedZone zone = PublicHostedZone.Builder.create(this, "Zone")
+                .zoneName(DOMAIN)
+                .build();
+        CfnOutput.Builder.create(this, "NameServers")
+                .description("Add these as NS records for 'tradedesk' in Cloudflare")
+                .value(Fn.join(", ", zone.getHostedZoneNameServers()))
+                .build();
+        Certificate apiCertificate = Certificate.Builder.create(this, "ApiCertificate")
+                .domainName(API_DOMAIN)
+                .validation(CertificateValidation.fromDns(zone))
+                .build();
         publish("vpc-id", vpc.getVpcId());
+        publish("api-certificate-arn", apiCertificate.getCertificateArn());
         publish("public-subnet-ids", String.join(",",
                 vpc.getPublicSubnets().stream().map(s -> s.getSubnetId()).toList()));
         publish("app-security-group-id", appSecurityGroup.getSecurityGroupId());
@@ -121,6 +134,7 @@ public class DataStack extends Stack {
         publish("db-endpoint-port", database.getDbInstanceEndpointPort());
         publish("db-secret-arn", database.getSecret().getSecretArn());
         publish("jwt-secret-arn", jwtSecret.getSecretArn());
+        publish("hosted-zone-id", zone.getHostedZoneId());
     }
 
     public Vpc getVpc() { return vpc; }

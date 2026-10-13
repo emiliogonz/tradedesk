@@ -6,6 +6,7 @@ import software.amazon.awscdk.StackProps;
 import software.amazon.awscdk.assertions.Match;
 import software.amazon.awscdk.assertions.Template;
 
+import java.util.List;
 import java.util.Map;
 
 class DataStackTest {
@@ -39,9 +40,20 @@ class DataStackTest {
 
     @Test
     void publishesValuesForOtherStacksToSsm() {
-        template.resourceCountIs("AWS::SSM::Parameter", 7);
-        template.hasResourceProperties("AWS::SSM::Parameter", Map.of(
-                "Name", DataStack.PARAM_PREFIX + "db-secret-arn"));
+        for (String name : List.of("vpc-id", "public-subnet-ids", "app-security-group-id",
+                "db-endpoint-address", "db-endpoint-port", "db-secret-arn", "jwt-secret-arn",
+                "hosted-zone-id")) {
+            template.hasResourceProperties("AWS::SSM::Parameter", Map.of(
+                    "Name", DataStack.PARAM_PREFIX + name));
+        }
+    }
+    @Test
+    void delegatedZoneAndDnsValidatedApiCertificate() {
+        template.hasResourceProperties("AWS::Route53::HostedZone", Map.of(
+                "Name", DataStack.DOMAIN + "."));
+        template.hasResourceProperties("AWS::CertificateManager::Certificate", Map.of(
+                "DomainName", DataStack.API_DOMAIN,
+                "ValidationMethod", "DNS"));
     }
 
     @Test

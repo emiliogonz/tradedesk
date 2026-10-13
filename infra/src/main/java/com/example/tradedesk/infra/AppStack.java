@@ -1,6 +1,7 @@
 package com.example.tradedesk.infra;
 
 import software.amazon.awscdk.CfnOutput;
+import software.amazon.awscdk.Duration;
 import software.amazon.awscdk.Stack;
 import software.amazon.awscdk.StackProps;
 import software.amazon.awscdk.services.ecr.Repository;
@@ -11,6 +12,10 @@ import software.amazon.awscdk.services.iam.CfnInstanceProfile;
 import software.amazon.awscdk.services.iam.ManagedPolicy;
 import software.amazon.awscdk.services.iam.Role;
 import software.amazon.awscdk.services.iam.ServicePrincipal;
+import software.amazon.awscdk.services.route53.CnameRecord;
+import software.amazon.awscdk.services.route53.HostedZone;
+import software.amazon.awscdk.services.route53.HostedZoneAttributes;
+import software.amazon.awscdk.services.route53.IHostedZone;
 import software.amazon.awscdk.services.s3.assets.Asset;
 import software.amazon.awscdk.services.secretsmanager.Secret;
 import software.amazon.awscdk.services.ssm.StringParameter;
@@ -45,6 +50,8 @@ public class AppStack extends Stack {
         String jwtSecretArn = param("jwt-secret-arn");
         String jdbcUrl = "jdbc:postgresql://" + param("db-endpoint-address")
                 + ":" + param("db-endpoint-port") + "/tradedesk";
+        String apiCertificateArn = param("api-certificate-arn");
+        String hostedZoneId = param("hosted-zone-id");
 
         // --- What to run: a Dockerrun file pointing at one exact image in ECR ---
         String imageUri = "%s.dkr.ecr.%s.amazonaws.com/%s:%s"
@@ -114,6 +121,12 @@ public class AppStack extends Stack {
                 opt("aws:elasticbeanstalk:cloudwatch:logs", "RetentionInDays", "7"),
                 opt("aws:elasticbeanstalk:cloudwatch:logs", "DeleteOnTerminate", "true"),
 
+                // HTTPS only: port 443 with the ACM certificate; plain HTTP is not served at all
+                opt("aws:elbv2:listener:443", "Protocol", "HTTPS"),
+                opt("aws:elbv2:listener:443", "SSLCertificateArns", apiCertificateArn),
+                opt("aws:elbv2:listener:443", "SSLPolicy", "ELBSecurityPolicy-TLS13-1-2-2021-06"),
+                opt("aws:elbv2:listener:default", "ListenerEnabled", "false"),
+
                 // Plain configuration: not sensitive
                 opt(ENV, "SPRING_PROFILES_ACTIVE", "prod"),
                 opt(ENV, "SPRING_DATASOURCE_URL", jdbcUrl),
@@ -132,8 +145,20 @@ public class AppStack extends Stack {
                 .optionSettings(options)
                 .build();
 
+        IHostedZone zone = HostedZone.fromHostedZoneAttributes(this, "Zone", HostedZoneAttributes.builder()
+                .hostedZoneId(hostedZoneId)
+                .zoneName(DataStack.DOMAIN)
+                .build());
+
+        CnameRecord.Builder.create(this, "ApiRecord")
+                .zone(zone)
+                .recordName(DataStack.API_DOMAIN)
+                .domainName(environment.getAttrEndpointUrl())
+                .ttl(Duration.minutes(1))
+                .build();
+
         CfnOutput.Builder.create(this, "Url")
-                .value("http://" + environment.getAttrEndpointUrl())
+                .value("https://" + DataStack.API_DOMAIN)
                 .build();
     }
 
